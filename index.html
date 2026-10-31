@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>أقساطي</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a1426">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f6fb;--card:#fff;--in:#eef2f8;--b:#dbe3ef;--tx:#13213a;--mu:#64748b;--g:#0fb67f;--g2:#07946a;--wn:#8a5b00;--wnb:#fff4d6;--rd:#d63a52;--ind:#5b4ff0;--hero:linear-gradient(135deg,#d8f5ea,#eaf1fb)}
@@ -119,8 +122,8 @@ async function setup() {
 }
 async function syncMembers(d) {
   try {
-    const m = {}; JSON.parse(d.v).forEach(x => { if (x.id) m[x.id] = x.r === 'مشاهد' ? 1 : x.r === 'مدير' ? 3 : 2; });
-    await F.fs.setDoc(ctx.wr, { members: m }, { merge: true });
+    const m = {}, sn = []; JSON.parse(d.v).forEach(x => { if (x.id) { m[x.id] = x.r === 'مشاهد' ? 1 : x.r === 'مدير' ? 3 : 2; if ((x.p || []).indexOf('s') > -1) sn.push(x.id); } });
+    await F.fs.setDoc(ctx.wr, { members: m, sens: sn }, { merge: true });
   } catch (e) { console.warn('members sync', e); }
 }
 const dbApi = {
@@ -138,6 +141,8 @@ const dbApi = {
 };
 const userApi = () => ({
   id: async () => ctx.user.uid,
+  name: ctx.user.displayName || ctx.user.email || '',
+  signOut: () => F.au.signOut(F.auth),
   isOwner: () => ctx.lvl === 4,
   canEdit: () => ctx.lvl >= 3,
   can: n => n === 'data.write' ? ctx.lvl >= 2 : true,
@@ -253,7 +258,7 @@ function alerts(){return all().filter(function(x){var t=st(x);return t=='متأ�
 function push(){try{var n=alerts().length;if(S.n&&n&&Notification.permission=='granted')new Notification('أقساطي',{body:'لديك '+n+' قسط مستحق أو متأخر'})}catch(e){}}
 function notif(){S.n=S.n?0:1;sv();nav();toast(S.n?'تم تفعيل الإشعارات':'تم إلغاء الإشعارات');if(S.n)try{Notification.requestPermission().then(push)}catch(e){}}
 function bdg(){var n=alerts().length,m=(S.tm||[])[S.as];$('#nt').textContent='🔔'+(n?' '+n:'');if(m&&S.as>=0)app.insertAdjacentHTML('afterbegin','<div class="note w">تعرض النظام كـ '+esc(m.n)+' ('+m.r+') <button class="btn sm" onclick="S.as=-1;sv();render()">رجوع للمالك</button></div>')}
-function att(i){[].forEach.call(i.files,function(f){var r=new FileReader();r.onload=function(){var m=new Image();m.onload=function(){var s=Math.min(1,700/m.width),c=document.createElement('canvas');c.width=m.width*s;c.height=m.height*s;c.getContext('2d').drawImage(m,0,0,c.width,c.height);K.at.push(c.toDataURL('image/jpeg',.6));render(1)};m.src=r.result};r.readAsDataURL(f)})}
+function att(i){[].forEach.call(i.files,function(f){var r=new FileReader();r.onload=function(){var m=new Image();m.onload=function(){var s=Math.min(1,700/m.width),c=document.createElement('canvas');c.width=m.width*s;c.height=m.height*s;c.getContext('2d').drawImage(m,0,0,c.width,c.height);if(K.at.length>=6)return toast('الحد الأقصى 6 مرفقات');K.at.push(c.toDataURL('image/jpeg',.55));render(1)};m.src=r.result};r.readAsDataURL(f)})}
 P.ntf=function(){var A=alerts();return hd('النظام والتطبيق','الإشعارات','تنبيهات الأقساط المستحقة والمتأخرة، وتظهر كإشعار على جهازك عند فتح التطبيق.','<button class="btn s" onclick=notif();render()>'+(S.n?'إلغاء تفعيل إشعارات الجهاز':'تفعيل إشعارات الجهاز')+'</button>')+(A.length?'<section class=card>'+A.map(row).join('')+'</section>':emp('لا توجد إشعارات'))};
 P.jr=function(){var J=S.j||[];return hd('الحسابات','قيود اليومية','تُنشأ القيود تلقائيًا من العقود والتحصيل والمشتريات والمرتجعات والمصروفات.')+(J.length?J.slice().reverse().map(function(e){return '<section class=card><b>'+esc(e.t)+'</b> <span class=tag>'+e.d+'</span>'+e.l.map(function(x){return '<div class=li><span>'+x[0]+'</span><span>'+(x[1]?'مدين '+M(x[1]):'دائن '+M(x[2]))+'</span></div>'}).join('')+'</section>'}).join(''):emp('لا توجد قيود'))};
 P.coa=function(){var b=bal();return hd('الحسابات','دليل الحسابات','أكواد الحسابات وأرصدتها.')+'<section class=card>'+AC.map(function(a){var x=b[a[1]]||[0,0];return '<div class=li><div><b>'+a[1]+'</b><div class=mu>'+a[0]+'</div></div><b>'+M(x[0]-x[1])+'</b></div>'}).join('')+'</section>'};
@@ -266,10 +271,10 @@ P.fa=function(){var L=S.g.fa||[];return gp('fa')+(L.length?'<section class=card>
 function addm(){var T=S.tm=S.tm||[];if(T.length+1>=LIM)return toast('وصلت للحد الأقصى للمستخدمين');var n=$('#tn').value.trim();if(!n)return toast('اكتب الاسم');T.push({n:n,ph:$('#tp').value,r:$('#tr_').value,p:[].map.call(document.querySelectorAll('.pc:checked'),function(c){return c.value})});sv();render()}
 P.team=function(){var T=S.tm=S.tm||[];return hd('إدارة الشركة','فريق العمل','أضف أعضاء فريقك وحدد صلاحياتهم. الحد الأقصى '+LIM+' مستخدمين شامل المالك، والحالي '+(T.length+1)+'/'+LIM+'.')+'<section class=card><label>الاسم</label><input id=tn><label>الهاتف</label><input id=tp type=tel><label>الدور</label><select id=tr_><option>مدير</option><option>محاسب</option><option>مندوب</option><option>مشاهد</option></select><label>الصلاحيات</label>'+PL.map(function(p){return '<label style=font-weight:600><input type=checkbox class=pc value='+p[0]+' style=width:auto> '+p[1]+'</label>'}).join('')+'<button class=btn onclick=addm()>+ إضافة عضو</button></section><section class=card><h2>العرض بصلاحيات عضو</h2><select onchange="S.as=+this.value;sv();render()"><option value=-1>المالك (كل الصلاحيات)</option>'+T.map(function(m,i){return '<option value='+i+(S.as==i?' selected':'')+'>'+esc(m.n)+'</option>'}).join('')+'</select></section>'+(T.length?'<section class=card>'+T.map(function(m,i){return '<div class=li><div><b>'+esc(m.n)+'</b> <span class=tag>'+m.r+'</span><div class=mu>'+m.p.map(function(k){return PL.filter(function(p){return p[0]==k})[0][1]}).join(' · ')+'</div></div><button class="btn d sm" onclick="S.tm.splice('+i+',1);S.as=-1;sv();render()">حذف</button></div>'}).join('')+'</section>':'')};
 var DB=null,UU=null,ME={id:null,owner:0},last={},QS=[];
-function dcs(){var D={meta:{n:S.n||0,co:S.co||''},lock:{v:S.lock||''},g:{v:JSON.stringify(S.g)},br:{v:JSON.stringify(S.br)},tm:{v:JSON.stringify(S.tm||[])},ws:{v:JSON.stringify(S.ws||{})}};S.c.forEach(function(c){D['c'+c.id]={v:JSON.stringify(c)}});(S.cu||[]).forEach(function(u){D['u'+u.id]={v:JSON.stringify(u)}});var J=S.j||[];for(var i=0;i<J.length;i+=150)D['j'+i/150]={v:JSON.stringify(J.slice(i,i+150))};return D}
-function up(){var D=dcs();Object.keys(D).forEach(function(k){var s=JSON.stringify(D[k]);if(last[k]!==s){last[k]=s;sd(k,D[k])}})}
-function sv(){try{localStorage.setItem('aq',JSON.stringify(S))}catch(e){}if(DB){clearTimeout(sv.t);sv.t=setTimeout(up,600)}}
-function apply(snap){var m={};snap.docs.forEach(function(d){if(d.exists)m[d.id]=d.data()});if(!m.meta){up();return}Object.keys(m).forEach(function(k){last[k]=JSON.stringify(m[k])});var j=function(k,d){try{return JSON.parse(m[k].v)}catch(e){return d}};S.n=m.meta.n;S.co=m.meta.co;S.lock=m.lock?m.lock.v:(m.meta.lock||'');S.g=j('g',{});S.br=j('br',S.br);S.tm=j('tm',[]);S.ws=j('ws',{});S.c=Object.keys(m).filter(function(k){return /^c\d+$/.test(k)}).map(function(k){return j(k,null)}).filter(Boolean).sort(function(a,b){return a.id-b.id});S.cu=Object.keys(m).filter(function(k){return /^u\d+$/.test(k)}).map(function(k){return j(k,null)}).filter(Boolean).sort(function(a,b){return a.id-b.id});S.j=[];for(var i=0;m['j'+i];i++)S.j=S.j.concat(j('j'+i,[]));try{localStorage.setItem('aq',JSON.stringify(S))}catch(e){}if((location.hash||'')!='#new'&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||''))render(1)}
+function dcs(){var D={meta:{n:S.n||0,co:S.co||''},lock:{v:S.lock||''},g:{v:JSON.stringify(S.g)},br:{v:JSON.stringify(S.br)},tm:{v:JSON.stringify(S.tm||[])},ws:{v:JSON.stringify(S.ws||{})}};S.c.forEach(function(c){D['c'+c.id]={v:JSON.stringify(cpub(c))}});(S.cu||[]).forEach(function(u){D['u'+u.id]={v:JSON.stringify(pub(u))}});var J=S.j||[];for(var i=0;i<J.length;i+=150)D['j'+i/150]={v:JSON.stringify(J.slice(i,i+150))};return D}
+function up(){ups();var D=dcs();Object.keys(D).forEach(function(k){var s=JSON.stringify(D[k]);if(last[k]!==s){last[k]=s;sd(k,D[k])}})}
+function sv(){cache();if(DB&&synced){clearTimeout(sv.t);sv.t=setTimeout(up,600)}}
+function apply(snap){synced=1;var m={};snap.docs.forEach(function(d){if(d.exists)m[d.id]=d.data()});if(!m.meta){up();return}Object.keys(m).forEach(function(k){last[k]=JSON.stringify(m[k])});var j=function(k,d){try{return JSON.parse(m[k].v)}catch(e){return d}};S.n=m.meta.n;S.co=m.meta.co;S.lock=m.lock?m.lock.v:(m.meta.lock||'');S.g=j('g',{});S.br=j('br',S.br);S.tm=j('tm',[]);if(!secSub&&can('s')){secSub=1;DB.collection('secure').onSnapshot(applySec,function(){secSub=0})}S.ws=j('ws',{});S.c=Object.keys(m).filter(function(k){return /^c\d+$/.test(k)}).map(function(k){return j(k,null)}).filter(Boolean).sort(function(a,b){return a.id-b.id});S.cu=Object.keys(m).filter(function(k){return /^u\d+$/.test(k)}).map(function(k){return j(k,null)}).filter(Boolean).sort(function(a,b){return a.id-b.id});secm();S.j=[];for(var i=0;m['j'+i];i++)S.j=S.j.concat(j('j'+i,[]));cache();if((location.hash||'')!='#new'&&!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||''))render(1)}
 async function boot(){try{if(!window.claude)return;UU=await claude.use('user');DB=await claude.use('db');if(UU){ME.id=await UU.id();ME.owner=UU.isOwner()}if(DB)DB.collection('st').onSnapshot(apply,function(){DB=null})}catch(e){}render(1);nav()}
 function can(k){var m;if(!DB||!ME.id){m=(S.tm||[])[S.as];return !m||S.as<0||m.p.indexOf(k)>-1}if(ME.owner)return true;m=(S.tm||[]).filter(function(x){return x.id==ME.id})[0];return !!m&&m.p.indexOf(k)>-1}
 function gk(h){if(h=='new'||h.indexOf('c-')==0)return 'c';for(var i=0;i<MENU.length;i++)if(MENU[i][2].some(function(x){return x[0]==h}))return PM[MENU[i][0]]}
@@ -305,7 +310,7 @@ P.ntf=function(){var A=alerts();return hd('النظام والتطبيق','ال�
 ['save','pay','ga','retn','docnt','cm','dopen','dotr','doout'].forEach(function(n){var f=window[n];window[n]=function(){if(S.lock&&TD<=S.lock)return toast('الفترة مقفلة حتى '+S.lock);return f.apply(this,arguments)}});
 function sd(k,d){var r=DB.collection('st').doc(k);r.get().then(function(s){var o=s.exists?s.data():null;if(o&&o.v&&/^[cj]\d/.test(k)){try{d={v:JSON.stringify(mg(k,JSON.parse(d.v),JSON.parse(o.v)))};last[k]=JSON.stringify(d)}catch(e){}}return r.set(d)}).catch(function(){})}
 function mg(k,l,r){if(k[0]=='c'){(l.s||[]).forEach(function(x,i){var y=(r.s||[])[i];if(y&&y.p&&!x.p&&y.d==x.d&&y.a==x.a)l.s[i]=y});if(r.iss)l.iss=1;return l}var seen={},o=[];r.concat(l).forEach(function(e){var id=e.i||JSON.stringify(e);if(!seen[id]){seen[id]=1;o.push(e)}});return o}
-function adm(){if(!DB||!ME.id||ME.owner||(UU&&UU.canEdit()))return true;toast('هذه العملية للمالك أو المحرر فقط');return false}
+function adm(){if(!DB||!ME.id||ME.owner)return true;toast('هذه العملية للمالك فقط');return false}
 ['addu','addm','lk'].forEach(function(n){var f=window[n];window[n]=function(){return adm()?f.apply(this,arguments):0}});
 var _t2=P.team;P.team=function(){return _t2().split('S.tm.splice(').join('adm()&&S.tm.splice(')};
 var _bd=bdg;bdg=function(){_bd();if(DB&&UU&&UU.can('data.write')===false)app.insertAdjacentHTML('afterbegin','<div class="note i">حسابك للعرض فقط، ولن تُحفظ تعديلاتك.</div>')};
@@ -341,8 +346,8 @@ function rz(f,cb){var r=new FileReader();r.onload=function(){var m=new Image();m
 function cfi(i){var f=i.files[0],k=i.dataset.k;if(f)rz(f,function(d){CU[k]=d;render(1)})}
 function cin(l,k,t){return '<label>'+l+'</label><input '+(t?'type='+t+' ':'')+'value="'+esc(CU[k]||'')+'" oninput="CU.'+k+'=this.value">'}
 function cim(l,k){return '<label>'+l+'</label><input type=file accept=image/* capture=environment data-k='+k+' onchange=cfi(this)><input type=file accept=image/* data-k='+k+' onchange=cfi(this)>'+(CU[k]?'<img src="'+CU[k]+'" style=width:100%;border-radius:12px;margin-top:8px>':'')}
-P.cust=function(){var q=(P.q||'').toLowerCase(),L=(S.cu||[]).filter(function(u){return !q||(u.n+u.nid+u.ph).toLowerCase().indexOf(q)>-1});return hd('المبيعات','العملاء','سجّل بيانات العميل والضامن وصور البطاقات لتظهر تلقائيًا في العقد المطبوع.')+'<section class=card><h2>بيانات العميل (الطرف الثاني)'+(CU.id?' - تعديل':'')+'</h2>'+cin('الاسم الثلاثي *','n')+cin('رقم الهاتف *','ph','tel')+cin('الرقم القومي (14 رقم) *','nid','tel')+cin('العنوان','ad')+cim('صورة البطاقة الشخصية','idp')+'</section><section class=card><h2>بيانات الضامن</h2>'+cin('اسم الضامن الثلاثي','gn')+cin('رقم هاتف الضامن','gph','tel')+cin('الرقم القومي للضامن','gnid','tel')+cim('صورة بطاقة الضامن','gidp')+'<button class=btn onclick=csave()>حفظ العميل</button></section><input placeholder=ابحث value="'+esc(P.q||'')+'" oninput="P.q=this.value;render(1)">'+(L.length?'<section class=card>'+L.map(function(u){return '<div class=li><div><b>'+esc(u.n)+'</b><div class=mu>'+esc(u.ph)+' · '+esc(u.nid)+'</div></div><div><button class="btn s sm" onclick=ced('+u.id+')>تعديل</button> <button class="btn sm" onclick=cnew('+u.id+')>عقد جديد</button></div></div>'}).join('')+'</section>':emp('لا يوجد عملاء','سجّل أول عميل.'))};
-function csave(){var n=(CU.n||'').trim();if(n.split(/\s+/).length<3)return toast('اكتب الاسم ثلاثيًا على الأقل');if(!/^\d{14}$/.test(CU.nid||''))return toast('الرقم القومي يجب أن يكون 14 رقمًا');if(!(CU.ph||'').trim())return toast('اكتب رقم الهاتف');if(CU.gnid&&!/^\d{14}$/.test(CU.gnid))return toast('الرقم القومي للضامن يجب أن يكون 14 رقمًا');S.cu=S.cu||[];CU.n=n;if(CU.id){S.cu=S.cu.map(function(x){return x.id==CU.id?CU:x})}else{CU.id=S.cu.reduce(function(m,x){return Math.max(m,x.id)},0)+1;S.cu.push(CU)}CU={};sv();toast('تم حفظ العميل');render()}
+P.cust=function(){var q=(P.q||'').toLowerCase(),L=(S.cu||[]).filter(function(u){return !q||(u.n+(u.nid||'')+u.ph).toLowerCase().indexOf(q)>-1});return hd('المبيعات','العملاء','سجّل بيانات العميل والضامن وصور البطاقات لتظهر تلقائيًا في العقد المطبوع.')+'<section class=card><h2>بيانات العميل (الطرف الثاني)'+(CU.id?' - تعديل':'')+'</h2>'+cin('الاسم الثلاثي *','n')+cin('رقم الهاتف *','ph','tel')+(SH()?cin('الرقم القومي (14 رقم) *','nid','tel'):'')+cin('العنوان','ad')+(SH()?cim('صورة البطاقة الشخصية','idp'):'')+'</section><section class=card><h2>بيانات الضامن</h2>'+cin('اسم الضامن الثلاثي','gn')+cin('رقم هاتف الضامن','gph','tel')+(SH()?cin('الرقم القومي للضامن','gnid','tel')+cim('صورة بطاقة الضامن','gidp'):'')+'<button class=btn onclick=csave()>حفظ العميل</button></section><input placeholder=ابحث value="'+esc(P.q||'')+'" oninput="P.q=this.value;render(1)">'+(L.length?'<section class=card>'+L.map(function(u){return '<div class=li><div><b>'+esc(u.n)+'</b><div class=mu>'+esc(u.ph)+' · '+esc(u.nid||(u.n4?'**********'+u.n4:''))+'</div></div><div><button class="btn s sm" onclick=ced('+u.id+')>تعديل</button> <button class="btn sm" onclick=cnew('+u.id+')>عقد جديد</button></div></div>'}).join('')+'</section>':emp('لا يوجد عملاء','سجّل أول عميل.'))};
+function csave(){var n=(CU.n||'').trim();if(n.split(/\s+/).length<3)return toast('اكتب الاسم ثلاثيًا على الأقل');if(SH()&&!/^\d{14}$/.test(CU.nid||''))return toast('الرقم القومي يجب أن يكون 14 رقمًا');if(!(CU.ph||'').trim())return toast('اكتب رقم الهاتف');if(CU.gnid&&!/^\d{14}$/.test(CU.gnid))return toast('الرقم القومي للضامن يجب أن يكون 14 رقمًا');S.cu=S.cu||[];CU.n=n;if(CU.id){S.cu=S.cu.map(function(x){return x.id==CU.id?CU:x})}else{CU.id=S.cu.reduce(function(m,x){return Math.max(m,x.id)},0)+1;S.cu.push(CU)}CU={};sv();toast('تم حفظ العميل');render()}
 function ced(id){CU=JSON.parse(JSON.stringify(S.cu.filter(function(x){return x.id==id})[0]));render();scrollTo(0,0)}
 function cnew(id){var u=S.cu.filter(function(x){return x.id==id})[0];K=nk();K.cu=u.n;K.ph=u.ph;K.gr=u.gn||'';K.cid=u.id;go('new')}
 function pcu(v){K.cu=v;var u=(S.cu||[]).filter(function(x){return x.n==v||x.nid==v})[0];if(u){K.cu=u.n;K.ph=u.ph;K.gr=u.gn||'';K.cid=u.id;render(1)}}
@@ -353,6 +358,40 @@ var _rw=row;row=function(x){var h=_rw(x);if(!x.s.p)return h;var k=h.lastIndexOf(
 ['inv','pret','ret'].forEach(function(id,k){P[id]=function(){return gp(id).replace(/<button class="btn d sm" onclick="gd\('(\w+)',(\d+)\)">حذف<\/button>/g,function(m,a,n){return '<button class="btn s sm" onclick=pd('+k+','+n+')>🖨</button> '+m})}});
 $('#nt').insertAdjacentHTML('beforebegin','<button class=ib onclick=window.print() aria-label=طباعة>🖨</button>');
 sty();
+var synced=0,SEC={},secSub=0,AUD=[],audSub=0,SENS=['nid','idp','gnid','gidp'];
+PL.push(['s','عرض الرقم القومي وصور البطاقات']);
+MENU.filter(function(g){return g[0]=='الإعدادات'})[0][2].push(['audit','سجل التدقيق']);
+function pub(u){var o={};for(var k in u)if(SENS.indexOf(k)<0)o[k]=u[k];if(u.nid)o.n4=u.nid.slice(-4);if(u.gnid)o.g4=u.gnid.slice(-4);return o}
+function sw_(id,o){var d={v:JSON.stringify(o)},s=JSON.stringify(d),k='S'+id;if(last[k]!==s){last[k]=s;DB.collection('secure').doc(id).set(d).catch(function(){})}}
+function ups(){(S.cu||[]).forEach(function(u){var o={};SENS.forEach(function(k){if(u[k])o[k]=u[k]});if(Object.keys(o).length)sw_('u'+u.id,o)});(S.c||[]).forEach(function(c){if(c.at&&c.at.length)sw_('a'+c.id,{at:c.at})})}
+function cache(){try{localStorage.setItem('aq',JSON.stringify(S,function(k,v){return DB&&(SENS.indexOf(k)>-1||k=='at')?undefined:v}))}catch(e){}}
+function secm(){(S.cu||[]).forEach(function(u){var s=SEC['u'+u.id];if(s)for(var k in s)u[k]=s[k]});(S.c||[]).forEach(function(c){var s=SEC['a'+c.id];if(s)c.at=s.at})}
+function applySec(snap){snap.docs.forEach(function(d){try{SEC[d.id]=JSON.parse(d.data().v);last['S'+d.id]=JSON.stringify(d.data())}catch(e){}});secm();if(!/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||''))render(1)}
+function SH(){return !CU.id||can('s')}
+function cpub(c){var o={};for(var k in c)if(k!='at')o[k]=c[k];o.nat=c.at?c.at.length:(c.nat||0);return o}
+var _cd2=P.cd;P.cd=function(id){var h=_cd2(id),c=S.c.filter(function(z){return z.id==id})[0];return h+(c&&c.nat&&!(c.at&&c.at.length)?'<div class="note i">🔒 للعقد '+c.nat+' مرفقات محجوبة، وتحتاج صلاحية عرض الرقم القومي وصور البطاقات.</div>':'')};
+/* ===== قفل التطبيق ===== */
+var PK='aqpin',PT=null,hid=0;
+function pg(){try{return JSON.parse(localStorage.getItem(PK))}catch(e){return null}}
+async function hp(p,s){var k=await crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveBits']),b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(s),iterations:100000,hash:'SHA-256'},k,256);return Array.from(new Uint8Array(b)).map(function(x){return ('0'+x.toString(16)).slice(-2)}).join('')}
+function lockNow(){if(!pg()||$('#lkov'))return;var o=document.createElement('div');o.id='lkov';o.style.cssText='position:fixed;inset:0;z-index:998;background:#0a1426;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font:700 16px Cairo,Tahoma,sans-serif;padding:24px;text-align:center';o.innerHTML='<div style="font-size:28px">🔒 أقساطي</div><div>أدخل رقم القفل</div><input id=lkp type=password inputmode=numeric maxlength=8 style="width:200px;text-align:center;font-size:24px;background:#16243f;color:#fff;border:1px solid #1f2f4d;border-radius:14px;padding:12px"><button class=btn style="width:200px" onclick=unl()>فتح</button><div id=lkm style="color:#f0556a"></div>'+(DB?'<button class=pb onclick=lkx()>نسيت الرقم؟ تسجيل خروج</button>':'');document.body.appendChild(o);setTimeout(function(){var e=$('#lkp');if(e)e.focus()},100)}
+async function unl(){var c=pg(),v=$('#lkp').value,m=$('#lkm');if(!c)return;if(Date.now()<(c.w||0)){m.textContent='انتظر قليلًا قبل المحاولة';return}if((await hp(v,c.s))==c.h){c.f=0;c.w=0;localStorage.setItem(PK,JSON.stringify(c));$('#lkov').remove();idle();return}c.f=(c.f||0)+1;if(c.f>=5){if(DB){lkx(1);return}c.w=Date.now()+30000;c.f=0}localStorage.setItem(PK,JSON.stringify(c));m.textContent='رقم خاطئ'+(c.f?' ('+c.f+'/5)':'')}
+function lkx(q){if(!q&&!confirm('سيتم تسجيل الخروج ومسح النسخة المحلية. بياناتك محفوظة في السحابة. متابعة؟'))return;try{localStorage.removeItem('aq');localStorage.removeItem(PK)}catch(e){}var r=function(){location.reload()};try{UU&&UU.signOut?UU.signOut().then(r,r):r()}catch(e){r()}}
+function idle(){clearTimeout(PT);var c=pg();if(!c)return;PT=setTimeout(lockNow,(c.m||2)*60000)}
+['click','touchstart','keydown'].forEach(function(e){addEventListener(e,function(){if(!$('#lkov'))idle()},true)});
+document.addEventListener('visibilitychange',function(){var c=pg();if(!c)return;if(document.hidden)hid=Date.now();else if(hid&&Date.now()-hid>30000)lockNow();else idle()});
+async function setpin(){var p=$('#np').value;if(!/^\d{4,8}$/.test(p))return toast('الرقم من 4 إلى 8 أرقام');var s=Math.random().toString(36).slice(2),c={s:s,h:await hp(p,s),m:+($('#pm')?$('#pm').value:2)||2};localStorage.setItem(PK,JSON.stringify(c));idle();toast('تم تفعيل القفل');render()}
+function delpin(){if(confirm('إلغاء القفل؟')){localStorage.removeItem(PK);render()}}
+function setm(v){var c=pg();if(c){c.m=+v;localStorage.setItem(PK,JSON.stringify(c));idle();toast('تم الحفظ')}}
+var _ps=P.set;P.set=function(){var c=pg();return _ps()+'<section class=card><h2>🔒 قفل التطبيق</h2><p class=mu>يقفل التطبيق برقم سري بعد الخمول أو عند الخروج منه. هذا قفل للواجهة لحماية الجهاز، وليس تشفيرًا كاملًا للبيانات.</p>'+(c?'<label>القفل التلقائي بعد (دقائق)</label><select onchange=setm(this.value)>'+[1,2,5,15].map(function(x){return '<option'+((c.m||2)==x?' selected':'')+'>'+x+'</option>'}).join('')+'</select><button class="btn s" onclick=delpin()>إلغاء القفل</button>':'<label>رقم سري (4 إلى 8 أرقام)</label><input id=np type=password inputmode=numeric maxlength=8><label>القفل بعد (دقائق)</label><select id=pm><option>1</option><option selected>2</option><option>5</option><option>15</option></select><button class=btn onclick=setpin()>تفعيل القفل</button>')+'</section>'};
+if(pg()){lockNow();idle()}
+/* ===== سجل التدقيق ===== */
+function sig(){return [S.c.length,(S.cu||[]).length,(S.j||[]).length,JSON.stringify(S.g).length,JSON.stringify(S.tm||[]).length,S.lock||'',JSON.stringify(S.ws||{}).length,(S.cu||[]).map(function(u){return (u.n||'').length+(u.ph||'').length+(u.ad||'').length+(u.gn||'').length}).join()].join('|')}
+function aud(l,a){var t=Date.now(),e={t:t,u:ME.id||'local',n:(UU&&UU.name)||'محلي',a:l,d:[].slice.call(a).filter(function(x){return typeof x!='object'}).join(' ').slice(0,80)};if(DB)DB.collection('audit').doc(t+'_'+Math.random().toString(36).slice(2,6)).set(e).catch(function(){});else{(S.lg=S.lg||[]).push(e);sv()}}
+var AL={save:'اعتماد عقد',pay:'تحصيل قسط',retn:'مرتجع مبيعات',csave:'حفظ عميل',ga:'إضافة سجل',gd:'حذف سجل',resch:'إعادة جدولة',docnt:'اعتماد جرد',cm:'حركة خزينة',dopen:'رصيد افتتاحي',dotr:'تحويل مخزني',doout:'صرف مخزون',lk:'إقفال أو فتح فترة',addu:'إضافة عضو',addm:'إضافة عضو'};
+Object.keys(AL).forEach(function(n){var f=window[n];if(typeof f!='function')return;window[n]=function(){var b=sig(),r=f.apply(this,arguments);if((n=='csave'&&!CU.n)||sig()!=b)aud(AL[n],arguments);return r}});
+P.audit=function(){var ok=!DB||ME.owner||(UU&&UU.canEdit());if(!ok)return emp('هذه الصفحة للمالك والمحررين فقط');if(DB&&!audSub){audSub=1;DB.collection('audit').onSnapshot(function(s){AUD=s.docs.map(function(d){return d.data()});if(location.hash=='#audit')render(1)},function(){audSub=0})}var L=(DB?AUD:(S.lg||[])).slice().sort(function(a,b){return b.t-a.t}).slice(0,300);return hd('الإعدادات','سجل التدقيق','من فعل ماذا ومتى. السجل لا يمكن تعديله أو حذفه من داخل التطبيق.')+(L.length?'<section class=card>'+L.map(function(e){return '<div class=li><div><b>'+esc(e.a)+'</b><div class=mu>'+esc(e.n)+(e.d?' · '+esc(e.d):'')+'</div></div><span class=mu>'+new Date(e.t).toLocaleString('ar-EG')+'</span></div>'}).join('')+'</section>':emp('لا توجد سجلات بعد'))};
+
 boot();
 /* router */
 function render(keep){var h=(location.hash||'#home').slice(1),y=scrollY,f=document.activeElement&&document.activeElement.id,pos=f&&document.activeElement.selectionStart;
@@ -363,5 +402,6 @@ $('#dr').classList.remove('on')}
 addEventListener('hashchange',function(){P.q='';render()});setTimeout(push,1500);
 render();
 </script>
+<script>if("serviceWorker"in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})</script>
 </body>
 </html>
