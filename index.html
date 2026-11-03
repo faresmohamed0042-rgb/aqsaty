@@ -189,3 +189,107 @@ window.__res(async name=>{
   return name==='db'?dbApi:name==='user'?userApi():null;
 });
 </script>
+<script>
+var $=function(s){return document.querySelector(s)},app=$('#app');
+function def(){return{c:[],g:{},br:['الفرع الرئيسي - MAIN'],n:0}}
+var S;try{S=JSON.parse(localStorage.getItem('aq'))||def()}catch(e){S=def()}
+function sv(){cache();if(DB&&synced){clearTimeout(sv.t);sv.t=setTimeout(up,600)}}
+var M=function(n){return (Math.round((+n||0)*100)/100).toLocaleString('en-US')+' ج.م'};
+var D0=function(d){var x=d?new Date(d):new Date();x.setHours(0,0,0,0);return x};
+var iso=function(d){var y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);return y+'-'+m+'-'+dd};
+var TD=iso(D0());
+function toast(t){var e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove()},2200)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+/* menu */
+var MENU=[
+['المبيعات','🧾',[['contracts','العقود'],['inst','الأقساط'],['ret','مرتجعات المبيعات']]],
+['المشتريات والموردون','🛒',[['sup','الموردون'],['inv','فواتير الشراء'],['pret','مرتجعات المشتريات']]],
+['المنتجات','📦',[['prod','المنتجات'],['cat','تصنيفات المنتجات']]],
+['المخازن والمخزون','🏬',[['wh','المخازن'],['open','الأرصدة الافتتاحية'],['out','صرف مخزون العقود'],['match','مطابقة المخزون'],['adj','تسويات المخزون'],['cnt','جرد المخزون'],['tr','التحويلات بين المخازن'],['frz','إيقاف حركات المخزون']]],
+['المالية والخزينة','💳',[['cash','الخزينة'],['exp','المصروفات'],['rev','الإيرادات']]],
+['الحسابات','🧮',[['coa','دليل الحسابات'],['acs','إعدادات الحسابات'],['jr','قيود اليومية'],['ar','التقارير المحاسبية'],['per','الفترات والإقفال'],['rec','المطابقات المحاسبية']]],
+['الأصول الثابتة','🏢',[['fa','سجل الأصول الثابتة'],['fap','مشتريات الأصول']]],
+['التقارير','📊',[['rep','التقارير'],['myx','تصديراتي']]],
+['إدارة الشركة','👥',[['team','فريق العمل'],['reps','المناديب'],['br','الفروع']]],
+['الإعدادات','⚙️',[['set','إعدادات الشركة']]],
+['الاشتراك','🎁',[['sub','اشتراكي']]],
+['النظام والتطبيق','📱',[['ntf','الإشعارات'],['upd','التحديثات'],['sup2','الدعم الفني'],['me','الملف الشخصي'],['app','تحميل التطبيق']]]];
+var open_=0;
+function nav(){
+var cur=(location.hash||'#home').slice(1);
+$('#nv').innerHTML='<div class="logo">Aqsaty<small>أقساطي | aqsaty.app</small></div><button class="g1'+(cur=='home'?' on':'')+'" onclick="go(\'home\')">🏠 نظرة عامة</button>'+MV().map(function(g,i){var on=g[2].some(function(x){return x[0]==cur});return '<button class="g1'+(on?' on':'')+'" onclick="tg('+i+')"><span>'+g[1]+' '+g[0]+'</span><span>'+(open_===i||on&&open_===0?'⌃':'⌄')+'</span></button><div class="sub'+(open_===i||(on&&open_===0)?' on':'')+'" id="s'+i+'">'+g[2].map(function(x){return '<a href="#'+x[0]+'" class="'+(x[0]==cur?'on':'')+'">'+x[1]+'</a>'}).join('')+'</div>'}).join('')+'<button class="btn s" onclick="notif()">🔔 '+(S.n?'إلغاء تفعيل الإشعارات':'تفعيل إشعارات الأقساط')+'</button><button class="btn d" onclick="logout()">خروج</button>'}
+function tg(i){open_=open_===i?-1:i;nav()}
+function notif(){S.n=S.n?0:1;sv();nav();toast(S.n?'تم تفعيل إشعارات الأقساط':'تم إلغاء الإشعارات');if(S.n)try{Notification.requestPermission().then(push)}catch(e){}}
+function go(h){location.hash=h}
+$('#mn').onclick=function(){nav();$('#dr').classList.add('on')};
+$('#dr .bg').onclick=function(){$('#dr').classList.remove('on')};
+$('#th').onclick=function(){var r=document.documentElement,d=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=d?'light':'dark'};
+$('#nt').onclick=function(){go('ntf')};
+
+/* helpers */
+function hd(ey,t,d,x){return '<section class="card hero"><div class="hd"><div class="ic">◆</div><div><small>'+ey+'</small><h1>'+t+'</h1></div></div><p class="mu">'+(d||'')+'</p>'+(x||'')+'</section>'}
+function emp(t,d,b){return '<div class="empty"><div style="font-size:30px">📅</div><b>'+t+'</b>'+(d?'<div>'+d+'</div>':'')+(b||'')+'</div>'}
+
+/* schedule */
+function mk(n,fr,first,tot){var a=[],d=D0(first),v=Math.round(tot/n*100)/100;for(var i=0;i<n;i++){a.push({d:iso(d),a:v,p:0,pd:'',e:0});if(fr=='يومي')d.setDate(d.getDate()+1);else if(fr=='أسبوعي')d.setDate(d.getDate()+7);else d.setMonth(d.getMonth()+1)}return a}
+function all(){var r=[];S.c.forEach(function(c){(c.s||[]).forEach(function(s,i){if(s.rs)return;r.push({c:c,s:s,i:i})})});return r}
+function st(x){var s=x.s;if(s.p)return s.e?'سداد مبكر':'مدفوع';if(s.rs)return 'مرحل';if(s.lg)return 'قانونية';if(s.d<TD)return 'متأخر';if(s.d<=iso(new Date(Date.now()+864e5)))return 'واجبة';return 'قيد الانتظار'}
+
+/* pages */
+var P={};
+P.home=function(){var a=all(),h=new Date().getHours(),due=a.filter(function(x){return st(x)=='واجبة'||st(x)=='متأخر'}),sm=due.reduce(function(t,x){return t+x.s.a},0),pt=a.filter(function(x){return x.s.pd==TD}).reduce(function(t,x){return t+x.s.a},0);
+return '<section class="card hero"><small style="color:var(--g);font-weight:700">'+(h<12?'صباح':'مساء')+' الخير، محمد 👋</small><h1>نظرة عامة على نشاطك</h1><div class="mu">'+new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div><p>'+(due.length?'مستحق اليوم '+M(sm)+' على '+due.length+' قسط. ':'مفيش أقساط مستحقة اليوم. ')+'تم تحصيل '+M(pt)+' حتى الآن.</p><button class="btn" onclick="go(\'new\')">+ عقد جديد</button><div class="row2"><button class="btn s" onclick="go(\'inst\')">$ الأقساط</button><button class="btn s" onclick="go(\'br\')">🏛 الفروع</button><button class="btn s" onclick="go(\'upd\')">✦ التحديثات</button><button class="btn s" onclick="go(\'rep\')">📊 تقرير شامل</button></div></section><h2>التحصيل اليوم</h2><div class="mu">ابدأ يومك من هنا: المستحق والمتحصل والمتأخر.</div><div class="card" style="background:var(--g);color:#fff"><div class="hd"><div class="ic">📅</div><div><b>واجب التحصيل اليوم</b><h1>'+M(sm)+'</h1></div></div></div>'+(due.length?'<div class="card">'+due.slice(0,5).map(row).join('')+'</div>':emp('لا توجد أقساط مستحقة'))};
+function row(x){var t=st(x);return '<div class="li"><div><b>'+esc(x.c.cu)+'</b><div class="mu">عقد #'+x.c.id+' - قسط '+(x.i+1)+' - '+x.s.d+'</div></div><div style="text-align:left"><b>'+M(x.s.a)+'</b><br><span class="tag '+(t=='متأخر'?'r':x.s.p?'g':'')+'">'+t+'</span>'+(x.s.p?'':'<br><button class="btn sm" style="margin-top:6px" onclick="pay('+x.c.id+','+x.i+')">تحصيل</button>')+'</div></div>'}
+function pay(c,i,e){var k=S.c.filter(function(z){return z.id==c})[0],s=k.s[i];s.p=1;s.pd=TD;if(e)s.e=1;je('تحصيل قسط عقد #'+c+' ('+(i+1)+')',[['الخزينة',s.a,0],['العملاء',0,s.a]]);sv();toast('تم تحصيل '+M(s.a));render()}
+var fil='الكل';
+P.inst=function(){var a=all(),T=iso(new Date()),w=iso(new Date(Date.now()+7*864e5)),tabs=['الكل','واجبة','تم تحصيله اليوم','مدفوع','قيد الانتظار','متأخر','قانونية','مرحل','سداد مبكر'],q=(P.q||'').toLowerCase();
+var sum=function(f){return a.filter(f).reduce(function(t,x){return t+x.s.a},0)},cnt=function(f){return a.filter(f).length};
+var l=a.filter(function(x){var t=st(x);return(fil=='الكل'||t==fil||fil=='تم تحصيله اليوم'&&x.s.pd==T)&&(!q||(x.c.cu+x.c.id).toLowerCase().indexOf(q)>-1)});
+return hd('المبيعات','متابعة الأقساط','تتبع التحصيلات اليومية والعملاء المتعثرين بلمحة واحدة.','<button class="btn s" onclick="exp()">⬇ تصدير</button><input id="q" placeholder="ابحث بالعميل أو رقم العقد..." value="'+esc(P.q||'')+'" oninput="P.q=this.value;render(1)">')+'<div class="row2"><div class="stat">تم تحصيله اليوم<b>'+M(sum(function(x){return x.s.pd==T}))+'</b><span class="mu">'+cnt(function(x){return x.s.pd==T})+' عميل</span></div><div class="stat">أقساط اليوم<b>'+M(sum(function(x){return x.s.d==T&&!x.s.p}))+'</b><span class="mu">'+cnt(function(x){return x.s.d==T&&!x.s.p})+' عميل</span></div><div class="stat" style="color:var(--rd)">المتأخرات<b>'+M(sum(function(x){return st(x)=='متأخر'}))+'</b><span class="mu">'+cnt(function(x){return st(x)=='متأخر'})+' قسط</span></div><div class="stat">أقساط الأسبوع<b>'+M(sum(function(x){return !x.s.p&&x.s.d>=T&&x.s.d<=w}))+'</b><span class="mu">'+cnt(function(x){return !x.s.p&&x.s.d>=T&&x.s.d<=w})+' دفعة</span></div></div><div class="stat" style="margin-top:10px">تحصيل الشهر<b>'+M(sum(function(x){return x.s.pd&&x.s.pd.slice(0,7)==T.slice(0,7)}))+'</b></div><div class="seg tabs" style="margin-top:12px">'+tabs.map(function(t){return '<button class="'+(t==fil?'on':'')+'" onclick="fil=\''+t+'\';render()">'+t+'</button>'}).join('')+'</div><div class="note i">قائمة واجبة التحصيل تشمل أقساط اليوم وغدًا، فلو القسط استحقاقه غدًا هيظهر لك من النهارده.</div>'+(l.length?'<div class="card">'+l.map(function(x){return row(x)}).join('')+'</div>':emp('لا توجد أقساط'))};
+function exp(){var r=['العقد,العميل,القسط,التاريخ,المبلغ,الحالة'].concat(all().map(function(x){return [x.c.id,x.c.cu,x.i+1,x.s.d,x.s.a,st(x)].join(',')}));try{var b=new Blob(['\ufeff'+r.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='aqsat.csv';a.click()}catch(e){toast('التصدير غير متاح هنا')}}
+
+/* new contract */
+var K;function nk(){return{br:S.br[0],rp:'',at:[],cu:'',ph:'',gr:'',tp:'تقسيط',dp:0,n:12,fr:'شهري',r:12,fd:iso(new Date(Date.now()+30*864e5)),it:[{p:'',q:1,u:0,nt:''}]}}
+P.new=function(){K=K||nk();var it=K.it.map(function(x,i){return '<div class="card" style="background:var(--in)"><div class="hd"><b class="sp">بند '+(i+1)+'</b>'+(K.it.length>1?'<button class="btn d sm" onclick="K.it.splice('+i+',1);render()">حذف</button>':'')+'</div><label>المنتج أو الخدمة</label><input value="'+esc(x.p)+'" list="pl" placeholder="ابحث باسم المنتج أو SKU أو الباركود" oninput="pick('+i+',this.value)"><div class="row2"><div><label>الكمية</label><input type="number" min="0" value="'+x.q+'" oninput="K.it['+i+'].q=+this.value;cal()"></div><div><label>سعر بيع الوحدة</label><input type="number" min="0" value="'+x.u+'" oninput="K.it['+i+'].u=+this.value;cal()"></div></div><label>ملاحظات اختيارية</label><input value="'+esc(x.nt)+'" placeholder="لون، موديل أو ملاحظة" oninput="K.it['+i+'].nt=this.value"></div>'}).join('');
+return '<datalist id="pl">'+(S.g.prod||[]).map(function(p){return '<option value="'+esc(p[0])+'">'}).join('')+'</datalist>'+hd('المبيعات','إنشاء عقد جديد','<span class="tag">جديد</span>','<button class="btn s" onclick="K=0;go(\'contracts\')">‹ العودة للعقود</button>')+'<section class="card"><h2>اختيار الفرع</h2><select onchange="K.br=this.value">'+S.br.map(function(b){return '<option>'+esc(b)+'</option>'}).join('')+'</select></section><section class="card"><h2>بيانات العميل</h2><label>اسم العميل *</label><input value="'+esc(K.cu)+'" placeholder="ابحث عن اسم العميل أو الرقم القومي" oninput="K.cu=this.value"><label>الهاتف</label><input type="tel" value="'+esc(K.ph)+'" oninput="K.ph=this.value"><label>الضامن (اختياري)</label><input value="'+esc(K.gr)+'" placeholder="اسم الضامن" oninput="K.gr=this.value"><label>المندوب</label><select onchange="K.rp=this.value"><option value="">بدون مندوب</option>'+(S.g.reps||[]).map(function(r){return '<option>'+esc(r[0])+'</option>'}).join('')+'</select></section><section class="card"><h2>بنود العقد</h2><p class="mu">أضف المنتجات أو الخدمات، والمخزون يظهر للبنود المخزنية فقط.</p><div class="note w">تنبيه صلاحية البيع: لو أدخلت سعرًا أقل من التكلفة، سيُسجل اعتمادك على الصنف للمراجعة.</div>'+it+'<button class="btn s" style="border-style:dashed" onclick="K.it.push({p:\'\',q:1,u:0,nt:\'\'});render()">+ إضافة بند</button></section><section class="card"><h2>تفاصيل الأقساط</h2><label>نوع البيع</label><div class="seg">'+['كاش','آجل','تقسيط'].map(function(t){return '<button class="'+(K.tp==t?'on':'')+'" onclick="K.tp=\''+t+'\';render()">'+t+'</button>'}).join('')+'</div><label>المبلغ الإجمالي (كاش)</label><input id="tt" readonly>'+(K.tp=='تقسيط'?'<label>المقدم</label><input type="number" min="0" value="'+K.dp+'" oninput="K.dp=+this.value;cal()"><div class="row2"><div><label>عدد الأقساط</label><input type="number" min="1" value="'+K.n+'" oninput="K.n=+this.value;cal()"></div><div><label>التكرار</label><select onchange="K.fr=this.value;cal()">'+['شهري','أسبوعي','يومي'].map(function(f){return '<option'+(K.fr==f?' selected':'')+'>'+f+'</option>'}).join('')+'</select></div></div><label>نسبة الفائدة (%)</label><input type="number" min="0" value="'+K.r+'" oninput="K.r=+this.value;cal()"><label>تاريخ أول قسط</label><input type="date" value="'+K.fd+'" oninput="K.fd=this.value">':'')+'</section><section class=card><h2>مرفقات العقد</h2><label>التقاط صورة بالكاميرا</label><input type=file accept=image/* capture=environment onchange=att(this)><label>رفع صور من الجهاز</label><input type=file accept=image/* multiple onchange=att(this)><div class=row2>'+K.at.map(function(a){return '<img src="'+a+'" style="width:100%;border-radius:12px;margin-top:8px">'}).join('')+'</div></section><section class="card sum" id="sm"></section><div class="note i">سيتم إنشاء جدول السداد، ويظل صرف المخزون بمستند مستقل.</div><div class="bar"><div><span class="mu">القسط الشهري</span><br><b id="mo" style="color:var(--g);font-size:20px">0 ج.م</b></div><button class="btn" onclick="save()">✓ اعتماد العقد</button></div>'};
+function calc(){var T=K.it.reduce(function(t,x){return t+x.q*x.u},0),r={T:T,P:0,I:0,A:T,m:T};if(K.tp=='تقسيط'){r.P=Math.max(T-K.dp,0);r.I=r.P*K.r/100;r.A=r.P+r.I;r.m=K.n>0?r.A/K.n:0}return r}
+function cal(){var c=calc(),s=$('#sm');if(!s)return;$('#tt').value=M(c.T);$('#mo').textContent=M(K.tp=='تقسيط'?c.m:0)+' / '+(K.fr=='شهري'?'شهر':K.fr=='أسبوعي'?'أسبوع':'يوم');s.innerHTML=K.tp=='تقسيط'?'<div><span>إجمالي البنود</span><span>'+M(c.T)+'</span></div><div><span>المقدم</span><span>'+M(K.dp)+'</span></div><div><span>الفائدة ('+K.r+'%)</span><span>'+M(c.I)+'</span></div><div><span>الإجمالي بعد الفائدة</span><b>'+M(c.A)+'</b></div><div><span>عدد الأقساط</span><b style="color:var(--g)">'+K.n+'</b></div>':'<div><span>الإجمالي</span><b>'+M(c.T)+'</b></div>'}
+function save(){
+  if(!K.cu.trim())return toast('اكتب اسم العميل');
+  var c=calc();if(c.T<=0)return toast('المبلغ الإجمالي يجب أن يكون أكبر من صفر');
+  var id=(function(){var m=0;(S.c||[]).forEach(function(c){var n=+c.id||0;if(n>m)m=n});return m+1})();
+  var k={id:id,cid:K.cid,at:K.at,rp:K.rp,cu:K.cu,ph:K.ph,gr:K.gr,br:K.br,tp:K.tp,T:c.T,dp:K.tp=='تقسيط'?K.dp:0,A:c.A,dt:TD,it:K.it,s:K.tp=='تقسيط'?mk(K.n,K.fr,K.fd,c.A):K.tp=='آجل'?mk(1,'شهري',K.fd,c.T):[]};
+  K.it.forEach(function(x){var p=(S.g.prod||[]).filter(function(y){return y[0]==x.p})[0];if(p)p[4]=(+p[4]||0)-x.q});
+  S.c.push(k);je(K.tp=='كاش'?'بيع كاش عقد #'+id:'عقد #'+id,K.tp=='كاش'?[['الخزينة',c.T,0],['المبيعات',0,c.T]]:[['الخزينة',k.dp,0],['العملاء',c.A,0],['المبيعات',0,c.T],['إيرادات فوائد',0,c.I]]);sv();K=0;toast('تم اعتماد العقد #'+id);go('contracts')
+}
+P.contracts=function(){
+  var q=(P.q||'').toLowerCase(),l=S.c.filter(function(c){return !q||(c.cu+c.id).toLowerCase().indexOf(q)>-1});
+  return hd('المبيعات','العقود','عقود الكاش والآجل والتقسيط مع جدول سداد لكل عقد.','<button class="btn" onclick="K=0;go(\'new\')">+ عقد جديد</button><input placeholder="ابحث بالعميل أو رقم العقد" value="'+esc(P.q||'')+'" oninput="P.q=this.value;render(1)">')+(l.length?'<div class="card">'+l.slice().reverse().map(function(c){var act=(c.s||[]).filter(function(x){return !x.rs});var pd=act.filter(function(x){return x.p}).length;return '<div class="li" onclick="go(\'c-'+c.id+'\')" style="cursor:pointer"><div><b>'+esc(c.cu)+'</b><div class="mu">عقد #'+c.id+' · '+c.dt+' · '+c.tp+'</div></div><div style="text-align:left"><b>'+M(c.A)+'</b><br><span class="tag">'+pd+'/'+(act.length)+' مسدد</span></div></div>'}).join('')+'</div>':emp('لا توجد عقود','ابدأ بإنشاء أول عقد لعميلك.'))
+};
+P.cd=function(id){
+  var c=S.c.filter(function(z){return z.id==id})[0];
+  if(!c)return emp('العقد غير موجود');
+  var rest=c.s.filter(function(x){return !x.p&&!x.rs});
+  return hd('عقد #'+c.id,esc(c.cu),c.tp+' · '+c.br+(c.gr?' · الضامن: '+esc(c.gr):''),'<button class="btn s" onclick="go(\'contracts\')">‹ رجوع للعقود</button>')+'<section class="card sum"><div><span>الإجمالي</span><b>'+M(c.A)+'</b></div><div><span>المقدم</span><span>'+M(c.dp)+'</span></div><div><span>المتبقي</span><b>'+M(rest.reduce(function(t,x){return t+x.a},0))+'</b></div></section>'+(rest.length?'<button class="btn s" onclick="resch('+c.id+')">إعادة جدولة المتبقي</button>':'')+'<button class="btn d" onclick="retn('+c.id+')">إنشاء مرتجع مبيعات</button>'+(c.at&&c.at.length?'<section class=card><h2>مرفقات العقد</h2>'+c.at.map(function(a){return '<img src="'+a+'" style="width:100%;border-radius:12px;margin-top:6px">'}).join('')+'</section>':'')+'<section class="card">'+c.s.map(function(s,i){
+    if(s.rs)return '<div class="li" style="opacity:.5"><div><b>قسط قديم (مُعاد جدولته)</b><div class="mu">'+s.d+' — '+M(s.a)+'</div></div></div>';
+    return row({c:c,s:s,i:i})+(s.p?'':'<button class="btn s sm" onclick="pay('+c.id+','+i+',1)">سداد مبكر</button>')
+  }).join('')+'</section>'
+};
+function resch(id){
+  var c=S.c.filter(function(z){return z.id==id})[0];
+  if(!c)return;
+  var remaining=(c.s||[]).filter(function(x){return !x.p&&!x.rs});
+  if(!remaining.length)return toast('لا يوجد متبقٍ');
+  var n=+prompt('عدد الأقساط الجديد للمتبقي؟','6');
+  if(!n||n<1)return;
+  var tot=remaining.reduce(function(t,x){return t+x.a},0);
+  var tag='resch_'+Date.now();
+  remaining.forEach(function(x){x.rs=tag;x.rs_amt=x.a;x.rs_date=x.d});
+  var newSched=mk(n,'شهري',iso(new Date(Date.now()+30*864e5)),tot);
+  newSched.forEach(function(x){x.from=tag});
+  c.s=c.s.concat(newSched);
+  je('إعادة جدولة عقد #'+id+' — '+n+' قسط',[]);
+  sv();toast('✓ '+n+' قسط بإجمالي '+M(tot));
+  render();
+}
